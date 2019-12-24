@@ -10,19 +10,20 @@
 #    Peter Bosch       05.12.2019      Initial version.
 #
 # //////////////////////////////////////////////////////////////////////////////////////////
-#   File:            :az_clone_build_ship_deploy.bash
+#   File:            :az_aci_clone_build_ship_deploy.bash
 #   version          :20191204 v0
 #   File Type        :Bash 
 #   Purpose          :download - Clone - Build - Ship - Deploy https://github.com/dsicipl/waardepapieren.git     
-#   Title:           :
-#   Category         :Discipl DEV2PROD 
-#   Identificatie    :https://github.com/BoschPeter/AZ_VM_waardepapieren-demo_westeurope_cloudapp_azure_com
+#   Title:           : 
+#   Category         :CI CD
+#   Identificatie    :https://github.com/BoschPeter/AZ_ACI_waardepapieren-demo_westeurope_azurecontainer_io
 #   big thanks to pim Otte ,stef van Leeuwen Wigo4it vincent van der laar.  
 # //////////////////////////////////////////////////////////////////////////////////////////
 
 #example Pim Otte
 #10dec 2:35 PM @Bas Als het goed is werkt https://waardepapieren-demo.discipl.org/
 #Ik had wel hier problemen met de ICTU firewall die het blokkeerde, ik moest met mijn telefoon op 4g om het werkend te krijgen
+
 
 #https://waardepapieren-demo.discipl.org/
 #https://waardepapieren-demo.westeurope.cloudapp.azure.com  VM
@@ -72,18 +73,23 @@
 
 
 ##################################################################
+# Purpose: set FQDN    start of your FQDN in azure.
+# Arguments: discipl 
+# Return: https://discipl.westeurope.cloudapp.azure.com
+##################################################################
+#Z_DNSNAMELABEL=waardepapieren-demo 
+
+
+##################################################################
 # Purpose: set FQDN  start of your FQDN in azure.
 # Arguments: waardepapieren-demo
 # Return: https://waardepapieren-demo.westeurope.azurecontainer.io
 ##################################################################
 AZ_DNSNAMELABEL=waardepapieren-demo
 
-
-
-
 TARGET_HOST=linux_VM
 
-@TARGET_HOST=azure_container_instance
+#TARGET_HOST=azure_container_instance
 
  if [ "$TARGET_HOST" = "linux_VM" ]; then
        echo expression evaluated as linux_VM
@@ -103,6 +109,8 @@ CERT_HOST_IP_WAARDEPAPIEREN_SERVICE_HOSTNAME=$AZ_DNSNAMELABEL.westeurope.$AZ_TLD
 #echo "## DOWNLOAD
 #echo "#######################" 
 
+# install git
+# install docker 
 # install_azure_cli
 
 
@@ -124,24 +132,23 @@ CMD_DOCKER_COMPOSE=false  #volumes and links depreciated
 CMD_DOCKER_COMPOSE_BUILD=" --build"
 
 
-
 #echo "#######################"
 #echo "## DOCKER SHIP 
 #echo "#######################" 
 DOCKER_TAG=false   
 DOCKER_USER="boscp08"  #NB repository name must be lowercase
-DOCKER_VERSION_TAG="4.0"
+DOCKER_VERSION_TAG="2.0"
 DOCKER_PUSH=false #hub.docker.com   NB with docker commit you loose ENV
 
 #echo "#######################"
 #echo "## AZURE DEPLOY
 #echo "#######################" 
-AZ_RESOURCE_GROUP="Discipl_Wigo4it_DockerGroup4"
-AZ_RESOURCE_GROUP_DELETE=true
-AZ_RESOURCE_GROUP_CREATE=true
+AZ_RESOURCE_GROUP="Discipl_Wigo4it_DockerGroup"  #waardepapierenVM
+AZ_RESOURCE_GROUP_DELETE=false
+AZ_RESOURCE_GROUP_CREATE=false
 
 CREATE_AZ_DEPLOY_ACI_YAML=true #@PROJECT_DIR deploy_aci.yml
-CMD_AZ_CREATE_CONTAINERGROUP=true  #.. jeuh - - Running ... ..
+CMD_AZ_CREATE_CONTAINERGROUP=false  #.. jeuh - - Running ... ..
 
 
 #////////////////////////////////////////////////////////////////////
@@ -161,17 +168,19 @@ if  [ `uname` = 'Darwin' ]
 fi
 
 LOG_START_DATE_TIME=`date +%Y%m%d_%H_%M`  
-LOG_DIR=$HOME_DIR/LOG_DIR
-LOG_FILE=$LOG_DIR/LOG_$LOG_START_DATE_TIME.log
-GITHUB_DIR=$HOME_DIR/Dropbox/Github/Waardepapieren-AZURE-ACI  #git clone https://github.com/ezahr/Waardepapieren-AZURE-ACI.git 
-PROJECT_DIR=$HOME_DIR/Projects/scratch/virtual-insanity       #git clone https://github.com/disciplo/waardepapieren.git
-DOCKER_COMPOSE_DIR=$HOME_DIR/Projects/scratch/virtual-insanity/waardepapieren
-CLERK_FRONTEND_DIR=$HOME_DIR/Projects/scratch/virtual-insanity/waardepapieren/clerk-frontend
+LOG_DIR=${HOME_DIR}/LOG_DIR
+LOG_FILE=${LOG_DIR}/LOG_${LOG_START_DATE_TIME}.log
+
+PROJECT_DIR=/media/boscp08/Terra2/Github/BoschPeter   #git init 
+GIT_REPO=AZ_VM_waardepapieren-demo_westeurope_cloudapp_azure_com
+GITHUB_DIR=$PROJECT_DIR/${GIT_REPO}   #git clone https://github.com/ezahr/Waardepapieren-AZURE-ACI.git 
+
+DOCKER_COMPOSE_DIR=${GITHUB_DIR}
+CLERK_FRONTEND_DIR=${GITHUB_DIR}/clerk-frontend
 CLERK_FRONTEND_NGINX_DIR=${CLERK_FRONTEND_DIR}/nginx
 #CLERK_FRONTEND_CYPRESS_DIR=${CLERK_FRONTEND_DIR}/cypress
-WAARDEPAPIEREN_SERVICE_DIR=$HOME_DIR/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
+WAARDEPAPIEREN_SERVICE_DIR=${GITHUB_DIR}/waardepapieren-service
 WAARDEPAPIEREN_SERVICE_CONFIG_DIR=${WAARDEPAPIEREN_SERVICE_DIR}/configuration
-
 
 
 SET_DOCKERCOMPOSE_TRAVIS_WITHOUT_VOLUME=true       # mimic native Dockerfile build  #! no volumes , no links (bridged docker network)
@@ -194,15 +203,13 @@ SET_WAARDEPAPIEREN_SERVICE_CONFIG=true
 #echo "## feedbak 
 #echo "#######################" 
 PROMPT=true # echo parameters
-DOUBLE_CHECK=true  #cat content modified files to $LOG_DIR
+DOUBLE_CHECK=true  #cat content modified files to ${LOG_DIR}
  
-
 #'********** end of parameters **********
 
 #'>>> below the functions that are called by other functions
 # modify at your own peril! because of configuration drift 
 # main purpose of this script to show configuration for containers spinning in the cloud. 
-
 
 ##################################################################
 # Purpose: modify docker-compose-travis.yml 
@@ -211,14 +218,10 @@ DOUBLE_CHECK=true  #cat content modified files to $LOG_DIR
 ##################################################################
 docker_compose_travis_yml_with_volumes() {
 echo "- Running ... docker_compose_travis_yml_with_volumes"
-#DOCKER_COMPOSE_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren
-#cd ${DOCKER_COMPOSE_DIR}
-#mv docker-compose-travis.yml  docker-compose-travis_`date "+%Y%m%d-%H%M%S"`.yml
-#touch docker-compose-travis.yml 
 
 TT_DIRECTORY=${DOCKER_COMPOSE_DIR}
 TT_INSPECT_FILE=docker-compose-travis.yml 
-echo $TT_DIRECTORY.${TT_INSPECT_FILE}
+echo ${TT_DIRECTORY}.${TT_INSPECT_FILE}
 
 enter_touch
 
@@ -294,7 +297,7 @@ echo "- Running ... docker_compose_travis_yml_without_volumes"
 
 TT_DIRECTORY=${DOCKER_COMPOSE_DIR}
 TT_INSPECT_FILE=docker-compose-travis.yml 
-echo $TT_DIRECTORY.$TT_INSPECT_FILE
+echo ${TT_DIRECTORY}.${TT_INSPECT_FILE}
 
 enter_touch
 
@@ -350,11 +353,6 @@ TT_INSPECT_FILE=""
 ##################################################################
 clerk_frontend_dockerfile_with_volumes() {
 echo "- Running ... clerk_frontend_dockerfile_with_volumes"
-#CLERK_FRONTEND_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/clerk-frontend
-#CERT_HOST_IP=waardepapieren.westeurope.azurecontainer.io 
-#cd ${CLERK_FRONTEND_DIR}
-#mv Dockerfile  Dockerfile_`date "+%Y%m%d-%H%M%S"`.yml
-#touch Dockerfile
 
 TT_DIRECTORY=${CLERK_FRONTEND_DIR}
 TT_INSPECT_FILE=Dockerfile 
@@ -387,17 +385,13 @@ TT_INSPECT_FILE=""
 }
 
 ##################################################################
-# Purpose: 
+# Purpose: modify clerk-frontend.Dockerfile
 # Arguments: 
 # Return: 
 ##################################################################
 clerk_frontend_dockerfile_without_volumes() {
 
 echo "- Running ... clerk_frontend_dockerfile_without_volumes"
-#CLERK_FRONTEND_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/clerk-frontend
-#cd ${CLERK_FRONTEND_DIR}
-#mv Dockerfile  Dockerfile_`date "+%Y%m%d-%H%M%S"`.yml
-#touch Dockerfile
 
 TT_DIRECTORY=${CLERK_FRONTEND_DIR}
 TT_INSPECT_FILE=Dockerfile 
@@ -440,8 +434,7 @@ TT_INSPECT_FILE=""
 # Return: 
 ##################################################################
 clerk_frontend_nginx_conf() {
-#CLERK_FRONTEND_NGINX_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/clerk-frontend/nginx
-#CERT_HOST_IP=waardepapieren.westeurope.azurecontainer.io 
+
 echo "- Running ... clerk_frontend_nginx_conf"
 
 TT_DIRECTORY=${CLERK_FRONTEND_NGINX_DIR}
@@ -506,7 +499,6 @@ TT_INSPECT_FILE=""
 
 } 
 
-
 ##################################################################
 # Purpose: hack into waardepapieren-servcie Dockerfile
 # Arguments: 
@@ -514,14 +506,10 @@ TT_INSPECT_FILE=""
 ##################################################################
 waardepapieren_service_dockerfile_with_volumes() {
 echo "- Running ... waardepapieren_service_dockerfile_with_volumes"
-#WAARDEPAPIEREN_SERVICE_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
-#cd ${WAARDEPAPIEREN_SERVICE_DIR}
-#mv Dockerfile  Dockerfile_`date "+%Y%m%d-%H%M%S"`.yml
-#touch Dockerfile
+
 TT_DIRECTORY=${WAARDEPAPIEREN_SERVICE_DIR}
 TT_INSPECT_FILE=Dockerfile
 enter_touch
-
 
 echo "FROM node:10
 RUN mkdir /app
@@ -548,11 +536,7 @@ TT_INSPECT_FILE=""
 ##################################################################
 waardepapieren_service_dockerfile_without_volumes() {
 echo "- Running ... waardepapieren_service_dockerfile_without_volumes"
-#WAARDEPAPIEREN_SERVICE_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
-#sleep 1
-#cd ${WAARDEPAPIEREN_SERVICE_DIR}
-#mv Dockerfile  Dockerfile_`date "+%Y%m%d-%H%M%S"`.yml
-#touch Dockerfile
+
 TT_DIRECTORY=${WAARDEPAPIEREN_SERVICE_DIR}
 TT_INSPECT_FILE=Dockerfile
 enter_touch
@@ -597,13 +581,6 @@ TT_INSPECT_FILE=""
 ##################################################################
 waardepapieren_service_config_compose_travis_json () {
 echo "- Running ... waardepapieren_service_config_compose_travis_json"
-#WAARDEPAPIEREN_SERVICE_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
-#WAARDEPAPIEREN_SERVICE_CONFIG_DIR=${WAARDEPAPIEREN_SERVICE_DIR}/configuration
-#CERT_HOST_IP=waardepapieren.westeurope.azurecontainer.io 
-#/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service/configuration
-#cd $WAARDEPAPIEREN_SERVICE_CONFIG_DIR
-#mv waardepapieren-config-compose-travis.json  waardepapieren-config-compose-travis_`date "+%Y%m%d-%H%M%S"`.json
-#touch waardepapieren-config-compose-travis.json
 
 TT_DIRECTORY=$WAARDEPAPIEREN_SERVICE_CONFIG_DIR
 TT_INSPECT_FILE=waardepapieren-config-compose-travis.json
@@ -648,13 +625,6 @@ TT_INSPECT_FILE=""
 ##################################################################
 waardepapieren_service_config_json () {
 echo "- Running ... waardepapieren_service_config_compose_json"
-#WAARDEPAPIEREN_SERVICE_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
-#WAARDEPAPIEREN_SERVICE_CONFIG_DIR=${WAARDEPAPIEREN_SERVICE_DIR}/configuration
-#CERT_HOST_IP=waardepapieren.westeurope.azurecontainer.io 
-#/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service/configuration
-#cd $WAARDEPAPIEREN_SERVICE_CONFIG_DIR
-#mv waardepapieren-config-compose-travis.json  waardepapieren-config-compose-travis_`date "+%Y%m%d-%H%M%S"`.json
-#touch waardepapieren-config-compose-travis.json
 
 TT_DIRECTORY=$WAARDEPAPIEREN_SERVICE_CONFIG_DIR
 TT_INSPECT_FILE=waardepapieren-config-compose.json
@@ -699,13 +669,6 @@ TT_INSPECT_FILE=""
 ##################################################################
 waardepapieren_service_config_json () {
 echo "- Running ... waardepapieren_service_config_json"
-#WAARDEPAPIEREN_SERVICE_DIR=/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
-#WAARDEPAPIEREN_SERVICE_CONFIG_DIR=${WAARDEPAPIEREN_SERVICE_DIR}/configuration
-#CERT_HOST_IP=waardepapieren.westeurope.azurecontainer.io 
-#/Users/boscp08/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service/configuration
-#cd $WAARDEPAPIEREN_SERVICE_CONFIG_DIR
-#mv waardepapieren-config-compose-travis.json  waardepapieren-config-compose-travis_`date "+%Y%m%d-%H%M%S"`.json
-#touch waardepapieren-config-compose-travis.json
 
 TT_DIRECTORY=$WAARDEPAPIEREN_SERVICE_CONFIG_DIR
 TT_INSPECT_FILE=waardepapieren-config.json
@@ -743,8 +706,6 @@ TT_INSPECT_FILE=""
 
 }
 
-
-
 ##################################################################
 # Purpose: hack into azure deploy ACI
 # Arguments: 
@@ -752,7 +713,6 @@ TT_INSPECT_FILE=""
 ##################################################################
 create_azure_deploy_aci_yaml() {
 echo "- Running ... create_azure_deploy_aci_yaml"
-#PROJECT_DIR=/Users/boscp08/Projects/scratch/virtual-insanity
 
 TT_DIRECTORY=${PROJECT_DIR}
 TT_INSPECT_FILE=deploy-aci.yaml
@@ -829,6 +789,25 @@ enter_cont() {
     read
 }
 
+
+##################################################################
+# Purpose: Procedure to clone de github repo on your pc
+# Arguments: 
+# Return: 
+##################################################################
+
+git_clone() {
+ echo "- Running ... git_clone ${GIT_REPO}"
+ echo "rm -rf ${PROJECT_DIR}/${GIT_REPO} sure?"
+ enter_cont
+ cd ${PROJECT_DIR}
+ rm -rf ${GIT_REPO}
+ #git clone https://github.com/discipl/waardepapieren.git
+ #git clone https://github.com/AZ_VM_waardepapieren-demo_westeurope_cloudapp_azure_com.git
+ git clone https://github.com/${GIT_REPO}.git  
+
+}
+
 # /////////////////////////////////////////////////////////////////////////////////
 #  Create a Header in the logfile
 # /////////////////////////////////////////////////////////////////////////////////
@@ -847,6 +826,7 @@ create_logfile_footer() {
     echo ----------------------------------------------------------------------------- >> $LOG_FILE
     }
 
+
 ##################################################################
 # Purpose: Procedure to create directories specified
 # Arguments: 
@@ -854,17 +834,10 @@ create_logfile_footer() {
 ##################################################################
 create_logdir() {
      
-if ! [ -d "$LOG_DIR" ]; then
+if ! [ -d "${LOG_DIR}" ]; then
   mkdir  ${LOG_DIR}
 fi 
 
-#create_projectdir() {
-
-#echo ${PROJECT_DIR} | awk -F/ '{print "/"$2"/"$3"/"$4"/"$5"/"$6}'
-#/home/boscp08/Projects/scratch/virtual-insanity
-#if ! [ -d "$LOG_DIR" ]; then
-#  mkdir  ${LOG_DIR}
-#fi
 }
 
 ##################################################################
@@ -892,7 +865,7 @@ fi
    fi
 
     }
- 
+
 
 ##################################################################
 # Purpose: Procedure to create an empty file
@@ -903,7 +876,6 @@ enter_touch () {
 
 cd ${TT_DIRECTORY}
 touch ${TT_INSPECT_FILE}
-
 
 }
 
@@ -918,8 +890,8 @@ clear
 if [ -f "${TT_INSPECT_FILE}" ]; then
  
 create_logfile_header
-echo "| $LOG_START_DATE_TIME | ${TT_DIRECTORY} |"                                  >> $LOG_FILE
-echo "| $LOG_START_DATE_TIME | ${TT_INSPECT_FILE}|"                                >> $LOG_FILE
+echo "| ${LOG_START_DATE_TIME} | ${TT_DIRECTORY} |"                                  >> $LOG_FILE
+echo "| ${LOG_START_DATE_TIME} | ${TT_INSPECT_FILE}|"                                >> $LOG_FILE
 echo "<code>"                                                                      >> $LOG_FILE
 cat  ${TT_INSPECT_FILE}                                                            >> $LOG_FILE
 echo "</code>"                                                                     >> $LOG_FILE
@@ -957,15 +929,9 @@ fi
 ##################################################################
 create_directories() {
   
-make_folder ${LOG_DIR} #=$HOME_DIR/LOG_DIR
-make_folder $GITHUB_DIR  #=${HOME_DIR}   #/Dropbox/Github/Waardepapieren-AZURE-ACI  #git clone https://github.com/ezahr/Waardepapieren-AZURE-ACI.git 
-make_folder ${PROJECT_DIR}   #=${HOME_DIR}  #/Projects/scratch/virtual-insanity       #git clone https://github.com/disciplo/waardepapieren.git
-#make_folder ${DOCKER_COMPOSE_DIR}#=${HOME_DIR} #/Projects/scratch/virtual-insanity/waardepapieren
-#make_folder $CLERK_FRONTEND_DIR #=${HOME_DIR} #/Projects/scratch/virtual-insanity/waardepapieren/clerk-frontend
-#make_folder $CLERK_FRONTEND_NGINX_DIR #=${CLERK_FRONTEND_DIR}/nginx
-#make_folder $WAARDEPAPIEREN_SERVICE_DIR  #=$HOME_DIR/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
-#make_folder ${WAARDEPAPIEREN_SERVICE_CONFIG_DIR}#=${WAARDEPAPIEREN_SERVICE_DIR}/configuration
-
+make_folder ${LOG_DIR} #=${HOME_DIR}/LOG_DIR
+make_folder ${PROJECT_DIR}   
+#make_folder ${GITHUB_DIR} NB from  #git clone https://github.com/ezahr/Waardepapieren-AZURE-ACI.git 
 
 }
 
@@ -991,7 +957,6 @@ git config --global user.password "P...r\!yyyy"
 #cd into 
 
 }
-
 
 ##################################################################
 # Purpose: remove alle containers 
@@ -1202,26 +1167,13 @@ docker-compose -f docker-compose-travis.yml up $CMD_DOCKER_COMPOSE_BUILD
 # Return: dokuwiki
 ##################################################################
 write_az_clone_build_ship_deploy_bash() {
-echo "| $LOG_START_DATE_TIME | ${GITHUB_DIR}|"                               >> $LOG_FILE
-echo "| $LOG_START_DATE_TIME | az_clone_build_ship_deploy.bash |"            >> $LOG_FILE
+echo "| ${LOG_START_DATE_TIME} | ${GITHUB_DIR}|"                               >> $LOG_FILE
+echo "| ${LOG_START_DATE_TIME} | az_clone_build_ship_deploy.bash |"            >> $LOG_FILE
 echo  "<code>"                                                                >> ${LOG_FILE} 
 cat  ${GITHUB_DIR}/az_clone_build_ship_deploy.bash                           >> $LOG_FILE
 echo "</code>"                                                               >> $LOG_FILE
 }
 
-##################################################################
-# Purpose: Procedure to clone de github repo on your pc
-# Arguments: 
-# Return: 
-##################################################################
-git_clone() {
- echo "- Running ... git_clone"
- echo "rm -rf ${PROJECT_DIR}/waardepapieren sure?"
- enter_cont
- cd ${PROJECT_DIR}
- rm -rf waardepapieren
- git clone https://github.com/discipl/waardepapieren.git
-}
 
 #/////////////////////////////////////////////////////////////////////////////////////////////
 #######################
@@ -1264,15 +1216,15 @@ echo "#######################"
 echo "HOME_DIR="${HOME_DIR} 
 echo "LOG_DIR="${LOG_DIR}  
 echo "LOG_FILE="${LOG_FILE}  
-echo "GITHUB_DIR="$GITHUB_DIR        # $HOME_DIR/Dropbox/Github/Waardepapieren-AZURE-ACI  #git clone https://github.com/ezahr/Waardepapieren-AZURE-ACI.git 
-echo "PROJECT_DIR="${PROJECT_DIR}         #$HOME_DIR/Projects/scratch/virtual-insanity       #git clone https://github.com/disciplo/waardepapieren.git
+echo "GITHUB_DIR="${GITHUB_DIR}        # ${HOME_DIR}/Dropbox/Github/Waardepapieren-AZURE-ACI  #git clone https://github.com/ezahr/Waardepapieren-AZURE-ACI.git 
+echo "PROJECT_DIR="${PROJECT_DIR}         #${HOME_DIR}/Projects/scratch/virtual-insanity       #git clone https://github.com/disciplo/waardepapieren.git
 enter_cont
 clear
-echo "DOCKER_COMPOSE_DIR="${DOCKER_COMPOSE_DIR}        #$HOME_DIR/Projects/scratch/virtual-insanity/waardepapieren
-echo "CLERK_FRONTEND_DIR="${CLERK_FRONTEND_DIR}        #$HOME_DIR/Projects/scratch/virtual-insanity/waardepapieren/clerk-frontend
+echo "DOCKER_COMPOSE_DIR="${DOCKER_COMPOSE_DIR}        #${HOME_DIR}/Projects/scratch/virtual-insanity/waardepapieren
+echo "CLERK_FRONTEND_DIR="${CLERK_FRONTEND_DIR}        #${HOME_DIR}/Projects/scratch/virtual-insanity/waardepapieren/clerk-frontend
 echo "CLERK_FRONTEND_NGINX_DIR="${CLERK_FRONTEND_NGINX_DIR}        #${CLERK_FRONTEND_DIR}/nginx
 #CLERK_FRONTEND_CYPRESS_DIR="$         #${CLERK_FRONTEND_DIR}/cypress
-echo "WAARDEPAPIEREN_SERVICE_DIR="${WAARDEPAPIEREN_SERVICE_DIR}        #$HOME_DIR/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
+echo "WAARDEPAPIEREN_SERVICE_DIR="${WAARDEPAPIEREN_SERVICE_DIR}        #${HOME_DIR}/Projects/scratch/virtual-insanity/waardepapieren/waardepapieren-service
 echo "WAARDEPAPIEREN_SERVICE_CONFIG_DIR="${WAARDEPAPIEREN_SERVICE_CONFIG_DIR}       #${WAARDEPAPIEREN_SERVICE_DIR}/configuration
 echo ""
 enter_cont
@@ -1559,12 +1511,13 @@ enter_cont
 
 if [ ${PROMPT} = true ] 
  then 
+ cd ${GITHUB_DIR}
  write_az_clone_build_ship_deploy_bash
  cat $LOG_FILE | more
  fi 
 
-echo " cd back into " $GITHUB_DIR
-cd $GITHUB_DIR
+echo " cd back into " ${GITHUB_DIR}
+cd ${GITHUB_DIR}
 clear
 
 
