@@ -192,7 +192,7 @@ SET_DOCKERFILE_CLERK_FRONTEND_WITH_VOLUME=false    # bypass docker-compose ACI c
 SET_DOCKERFILE_WAARDEPAPIEREN_WITH_VOLUME=false    # bypass docker-compose ACI cloud bridged network issus
 
 #EPHEMERAL_RETENTION_TIME=86400  #24h 
-EPHEMERAL_RETENTION_TIME=2592002 #30 dage
+EPHEMERAL_RETENTION_TIME=2592003 #30 dage
 SET_CLERK_FRONTEND_NGINX_CONF=true
 SET_WAARDEPAPIEREN_SERVICE_CONFIG_COMPOSE_TRAVIS_JSON=true
 SET_WAARDEPAPIEREN_SERVICE_CONFIG_COMPOSE=true
@@ -624,12 +624,14 @@ TT_INSPECT_FILE=""
 # Return: waardepapieren-config-compose.json
 
 ##################################################################
-waardepapieren_service_config_json () {
+waardepapieren_service_config_compose_json () {
 echo "- Running ... waardepapieren_service_config_compose_json"
 
 TT_DIRECTORY=$WAARDEPAPIEREN_SERVICE_CONFIG_DIR
 TT_INSPECT_FILE=waardepapieren-config-compose.json
 enter_touch
+
+
 
 echo " {
    \"EPHEMERAL_ENDPOINT\" : \"https://${CERT_HOST_IP}:3232\",
