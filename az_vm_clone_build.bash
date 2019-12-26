@@ -150,7 +150,6 @@ AZ_RESOURCE_GROUP_CREATE=false
 CREATE_AZ_DEPLOY_ACI_YAML=true #@PROJECT_DIR deploy_aci.yml
 CMD_AZ_CREATE_CONTAINERGROUP=false  #.. jeuh - - Running ... ..
 
-
 #////////////////////////////////////////////////////////////////////
 
 #echo "#######################"
@@ -168,12 +167,13 @@ if  [ `uname` = 'Darwin' ]
 fi
 
 LOG_START_DATE_TIME=`date +%Y%m%d_%H_%M`  
-LOG_DIR=${HOME_DIR}/LOG_DIR
+
 LOG_FILE=${LOG_DIR}/LOG_${LOG_START_DATE_TIME}.log
 
 PROJECT_DIR=/media/boscp08/Terra2/Github/BoschPeter   #git init 
 GIT_REPO=AZ_VM_waardepapieren-demo_westeurope_cloudapp_azure_com
 GITHUB_DIR=$PROJECT_DIR/${GIT_REPO}   #git clone https://github.com/ezahr/Waardepapieren-AZURE-ACI.git 
+LOG_DIR=${GITHUB_DIR}/LOG_DIR
 
 DOCKER_COMPOSE_DIR=${GITHUB_DIR}
 CLERK_FRONTEND_DIR=${GITHUB_DIR}/clerk-frontend
@@ -576,8 +576,8 @@ TT_INSPECT_FILE=""
 
 ##################################################################
 # Purpose: hack into waardepapieren-service config
-# Arguments: 
-# Return: 
+# Arguments: waardepapieren_service_config_compose_travis_json 
+# Return:  waardepapieren-config-compose-travis.json
 ##################################################################
 waardepapieren_service_config_compose_travis_json () {
 echo "- Running ... waardepapieren_service_config_compose_travis_json"
@@ -587,8 +587,8 @@ TT_INSPECT_FILE=waardepapieren-config-compose-travis.json
 enter_touch
 
 echo " {
-   \"EPHEMERAL_ENDPOINT\" : \"https://localhost:3232\",
-   \"EPHEMERAL_WEBSOCKET_ENDPOINT\" : \"wss://localhost:3232\",
+   \"EPHEMERAL_ENDPOINT\" : \"https://${CERT_HOST_IP}:3232\",
+   \"EPHEMERAL_WEBSOCKET_ENDPOINT\" : \"wss://${CERT_HOST_IP}:3232\",
    \"EPHEMERAL_CERT\": \"/ephemeral-certs/org.crt\",
    \"EPHEMERAL_KEY\": \"/ephemeral-certs/org.key\",
   \"NLX_OUTWAY_ENDPOINT\" : \"http://${CERT_HOST_IP}:80\",
@@ -620,8 +620,9 @@ TT_INSPECT_FILE=""
 
 ##################################################################
 # Purpose: hack into waardepapieren-service config
-# Arguments: 
-# Return: 
+# Arguments: waardepapieren_service_config_json
+# Return: waardepapieren-config-compose.json
+
 ##################################################################
 waardepapieren_service_config_json () {
 echo "- Running ... waardepapieren_service_config_compose_json"
@@ -631,8 +632,8 @@ TT_INSPECT_FILE=waardepapieren-config-compose.json
 enter_touch
 
 echo " {
-   \"EPHEMERAL_ENDPOINT\" : \"https://localhost:3232\",
-   \"EPHEMERAL_WEBSOCKET_ENDPOINT\" : \"wss://localhost:3232\",
+   \"EPHEMERAL_ENDPOINT\" : \"https://${CERT_HOST_IP}:3232\",
+   \"EPHEMERAL_WEBSOCKET_ENDPOINT\" : \"wss://${CERT_HOST_IP}:3232\",
    \"EPHEMERAL_CERT\": \"/ephemeral-certs/org.crt\",
    \"EPHEMERAL_KEY\": \"/ephemeral-certs/org.key\",
   \"NLX_OUTWAY_ENDPOINT\" : \"http://${CERT_HOST_IP}:80\",
@@ -664,8 +665,8 @@ TT_INSPECT_FILE=""
 
 ##################################################################
 # Purpose: hack into waardepapieren-service config
-# Arguments: 
-# Return: 
+# Arguments: waardepapieren_service_config_json 
+# Return: #waardepapieren-config.json
 ##################################################################
 waardepapieren_service_config_json () {
 echo "- Running ... waardepapieren_service_config_json"
@@ -675,8 +676,8 @@ TT_INSPECT_FILE=waardepapieren-config.json
 enter_touch
 
 echo " {
-   \"EPHEMERAL_ENDPOINT\" : \"https://localhost:3232\",
-   \"EPHEMERAL_WEBSOCKET_ENDPOINT\" : \"wss://localhost:3232\",
+   \"EPHEMERAL_ENDPOINT\" : \"https://${CERT_HOST_IP}:3232\",
+   \"EPHEMERAL_WEBSOCKET_ENDPOINT\" : \"wss://${CERT_HOST_IP}:3232\",
    \"EPHEMERAL_CERT\": \"/ephemeral-certs/org.crt\",
    \"EPHEMERAL_KEY\": \"/ephemeral-certs/org.key\",
   \"NLX_OUTWAY_ENDPOINT\" : \"http://${CERT_HOST_IP}:80\",
@@ -1343,21 +1344,27 @@ if [ $SET_DOCKERFILE_WAARDEPAPIEREN_WITHOUT_VOLUME = true ]
   then waardepapieren_service_dockerfile_without_volumes
 fi 
 
+# SET_WAARDEPAPIEREN_SERVICE_CONFIG_COMPOSE_TRAVIS_JSON=true
+# SET_WAARDEPAPIEREN_SERVICE_CONFIG_COMPOSE=true
+# SET_WAARDEPAPIEREN_SERVICE_CONFIG=true
+
 if [ $SET_WAARDEPAPIEREN_SERVICE_CONFIG_COMPOSE_TRAVIS_JSON = true ]
   then waardepapieren_service_config_compose_travis_json      
-  #https://waardepapieren-service:3232 http://mock-nlx:80 docker network... 
+
 fi 
 
 if [ $SET_WAARDEPAPIEREN_SERVICE_CONFIG_COMPOSE = true ]
   then waardepapieren_service_config_compose_json      
-  #https://waardepapieren-service:3232 http://mock-nlx:80 docker network... 
+
 fi 
 
 
 if [ $SET_WAARDEPAPIEREN_SERVICE_CONFIG = true ]
   then waardepapieren_service_config_json      
-  #https://waardepapieren-service:3232 http://mock-nlx:80 docker network... 
+
 fi 
+
+
 
 
 if [ $SET_CLERK_FRONTEND_NGINX_CONF = true ]
