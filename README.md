@@ -1,5 +1,8 @@
 # Waardepapieren
 
+
+
+
 This project provides a full implementation example of how Discipl components can be used to issue and
 verify claims. In particular, how municipalities can issue
 
@@ -142,4 +145,11 @@ Scan [ ] nogmaals de QR code
 ***
 ![c1](https://github.com/discipl/waardepapieren/blob/master/pictures/hbs20191010_14.png)
 
+
+# networking
+
+96
+
+You can install ifconfig with apt-get install net-tools.
+(Specifically, by adding RUN apt-get install -y net-tools to your Dockerfile.)
 
